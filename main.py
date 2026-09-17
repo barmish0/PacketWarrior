@@ -1,25 +1,32 @@
 import time
 from core.sniffer import NetworkSniffer
-
-def handle_captured_packet(packet):
-    print(f"Captured: {packet.summary()}")
-
-print("Initializing sniffer...")
-
-# Listen for ARP or ICMP
-test_sniffer = NetworkSniffer(
-    packet_filter="arp or icmp",
-    action_on_packet=handle_captured_packet
-)
-
-# Start background sniffing
-seconds = int(input("Enter the amount of time to run the sniffer (in seconds, integer only): "))
-test_sniffer.start()
+from offensive.arp_spoofer import continuous_arp_dos
 
 
-print(f"Sniffer is running for {seconds} seconds. Generate traffic.")
-time.sleep(seconds)
+def main():
+    while True:
+        print("\n=== PacketWarrior ===")
+        print("[1] Sniff ARP")
+        print("[2] Run ARP Spoofer")
+        print("[0] Exit")
 
-# Stop the sniffer
-test_sniffer.stop()
-print("Test completed.")
+        choice = input("Select: ").strip()
+
+        if choice == "1":
+            sniffer = NetworkSniffer("arp", lambda p: print(f"[CAUGHT]: {p.summary()}"))
+            sniffer.start()
+            input("Press Enter to stop sniffing...")
+            sniffer.stop()
+
+        elif choice == "2":
+            victim = input("Enter victim IP [default 192.168.1.194]: ").strip()
+            if not victim:
+                victim = "192.168.1.194"
+            continuous_arp_dos(victim_ip=victim)
+
+        elif choice == "0":
+            break
+
+
+if __name__ == "__main__":
+    main()
