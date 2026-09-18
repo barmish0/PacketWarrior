@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="Added sniffer.">
-      <change afterPath="$PROJECT_DIR$/offensive/arp_spoofer.py" afterDir="false" />
+    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="Added arp_spoofer.py.">
+      <change afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/defensive/arp_guard.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/offensive/arp_spoofer.py" beforeDir="false" afterPath="$PROJECT_DIR$/offensive/arp_spoofer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,25 +26,25 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "barmish0"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;barmish0&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/barmish0/PacketWarrior.git",
-    "accountId": "31802856-5157-485a-a9c2-b4ad091619ed"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/barmish0/PacketWarrior.git&quot;,
+    &quot;accountId&quot;: &quot;31802856-5157-485a-a9c2-b4ad091619ed&quot;
   }
-}]]></component>
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="3JTG3vM0lcaRHyzArD9asEz57rj" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -52,6 +54,7 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.main.executor": "Run",
+    "Python.menu.executor": "Run",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -85,11 +88,20 @@
       <option name="project" value="LOCAL‎" />
       <updated>1789681656837</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL‎-00002" summary="Added arp_spoofer.py.">
+      <option name="closed" value="true" />
+      <created>1789686104029</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL‎-00002" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1789686104029</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Added sniffer." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added sniffer." />
+    <MESSAGE value="Added arp_spoofer.py." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added arp_spoofer.py." />
   </component>
 </project>
