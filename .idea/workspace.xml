@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="added scanner.py, arp_guard.py,&#10;modified some files.">
-      <change afterPath="$PROJECT_DIR$/offensive/dhcp_starvation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/scanner.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/scanner.py" afterDir="false" />
+    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="added arp_spoofer.py">
+      <change beforePath="$PROJECT_DIR$/offensive/dhcp_starvation.py" beforeDir="false" afterPath="$PROJECT_DIR$/offensive/dhcp_starvation.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,13 +100,22 @@
       <option name="project" value="LOCAL‎" />
       <updated>1789763813439</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL‎-00004" summary="added arp_spoofer.py">
+      <option name="closed" value="true" />
+      <created>1791838669360</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL‎-00004" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1791838669360</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Added sniffer." />
     <MESSAGE value="Added arp_spoofer.py." />
     <MESSAGE value="added scanner.py, arp_guard.py,&#10;modified some files." />
-    <option name="LAST_COMMIT_MESSAGE" value="added scanner.py, arp_guard.py,&#10;modified some files." />
+    <MESSAGE value="added arp_spoofer.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="added arp_spoofer.py" />
   </component>
 </project>
