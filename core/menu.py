@@ -1,6 +1,6 @@
 from core.sniffer import NetworkSniffer
 from offensive.arp_spoofer import continuous_arp_dos
-from offensive.dhcp_starvation import dhcp_starvation
+from offensive.dhcp_starvation import starve
 from defensive.arp_guard import check_packet
 from core.scanner import display_scan
 
@@ -28,15 +28,16 @@ def offensive_menu():
             continuous_arp_dos(victim_ip=victim)
 
         elif choice == "3":
-            subnet_prefix = input("Enter subnet prefix [default 192.168.1.]: ").strip()
-            if not subnet_prefix:
-                subnet_prefix = "192.168.1."
-
-            dhcp_server = input("Enter DHCP Server IP [default 192.168.1.1]: ").strip()
+            dhcp_server = input("Enter DHCP Server IP / Target [default 192.168.1.1]: ").strip()
             if not dhcp_server:
                 dhcp_server = "192.168.1.1"
 
-            dhcp_starvation(ip_subnet=subnet_prefix, server_ip=dhcp_server)
+            print(f"[*] Starting DHCP starvation targeting server: {dhcp_server}")
+            print("[*] Press Ctrl+C to stop.")
+            try:
+                starve(target_ip=dhcp_server)
+            except KeyboardInterrupt:
+                print("\n[+] DHCP Starvation stopped by user.")
 
         elif choice == "0":
             break
