@@ -1,8 +1,9 @@
 from core.sniffer import NetworkSniffer
 from offensive.arp_spoofer import continuous_arp_dos
-from offensive.dhcp_starvation import starve
+from offensive.dhcp_starvation import start_starve
 from defensive.arp_guard import check_packet
 from core.scanner import display_scan
+from defensive.dhcp_guard import check_dhcp_packet
 
 
 def offensive_menu():
@@ -28,16 +29,11 @@ def offensive_menu():
             continuous_arp_dos(victim_ip=victim)
 
         elif choice == "3":
-            dhcp_server = input("Enter DHCP Server IP / Target [default 192.168.1.1]: ").strip()
+            dhcp_server = input("Enter DHCP Server IP [default 192.168.1.1]: ").strip()
             if not dhcp_server:
                 dhcp_server = "192.168.1.1"
 
-            print(f"[*] Starting DHCP starvation targeting server: {dhcp_server}")
-            print("[*] Press Ctrl+C to stop.")
-            try:
-                starve(target_ip=dhcp_server)
-            except KeyboardInterrupt:
-                print("\n[+] DHCP Starvation stopped by user.")
+            start_starve(target_ip=dhcp_server)
 
         elif choice == "0":
             break
@@ -47,6 +43,7 @@ def defensive_menu():
     while True:
         print("\n--- Defensive Mode (Blue Team) ---")
         print("[1] Run ARP Guard")
+        print("[2] Run DHCP Guard (Starvation Defense)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
@@ -58,5 +55,21 @@ def defensive_menu():
             input("Press Enter to stop ARP Guard...\n")
             sniffer.stop()
             print("[*] ARP Guard stopped.")
+
+        elif choice == "2":
+            dhcp_server = input("Enter DHCP Server IP [default 192.168.1.1]: ").strip()
+            if not dhcp_server:
+                dhcp_server = "192.168.1.1"
+
+            print(f"[*] DHCP Guard active. Monitoring ports 67/68 for attacks on {dhcp_server}...")
+            sniffer = NetworkSniffer(
+                packet_filter="udp and (port 67 or port 68)",
+                action_on_packet=lambda pkt: check_dhcp_packet(pkt, server_ip=dhcp_server)
+            )
+            sniffer.start()
+            input("Press Enter to stop DHCP Guard...\n")
+            sniffer.stop()
+            print("[*] DHCP Guard stopped.")
+
         elif choice == "0":
             break

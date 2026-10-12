@@ -1,6 +1,16 @@
-from core.menu import offensive_menu, defensive_menu
+import warnings
 import logging
+import scapy.config
+
+# 1. Suppress Python warnings (such as Scapy's SyntaxWarning on layer-3 send())
+warnings.filterwarnings("ignore", category=SyntaxWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# 2. Disable Scapy's runtime and interface warning logs
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+scapy.config.conf.verb = 0  # Silences scapy's print verbosity globally
+
+from core.menu import offensive_menu, defensive_menu
 
 def main():
     while True:
