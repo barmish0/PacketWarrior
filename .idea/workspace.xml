@@ -4,12 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="Added arp_spoofer.py.">
-      <change afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/defensive/arp_guard.py" afterDir="false" />
+    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="added scanner.py, arp_guard.py,&#10;modified some files.">
+      <change afterPath="$PROJECT_DIR$/offensive/dhcp_starvation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/offensive/arp_spoofer.py" beforeDir="false" afterPath="$PROJECT_DIR$/offensive/arp_spoofer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/scanner.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/scanner.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,21 +49,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.main.executor": "Run",
-    "Python.menu.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
-    "to.speed.mode.migration.done": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.menu.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -96,12 +95,21 @@
       <option name="project" value="LOCAL‎" />
       <updated>1789686104029</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL‎-00003" summary="added scanner.py, arp_guard.py,&#10;modified some files.">
+      <option name="closed" value="true" />
+      <created>1789763813439</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL‎-00003" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1789763813439</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Added sniffer." />
     <MESSAGE value="Added arp_spoofer.py." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added arp_spoofer.py." />
+    <MESSAGE value="added scanner.py, arp_guard.py,&#10;modified some files." />
+    <option name="LAST_COMMIT_MESSAGE" value="added scanner.py, arp_guard.py,&#10;modified some files." />
   </component>
 </project>

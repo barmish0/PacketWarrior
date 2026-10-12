@@ -1,6 +1,6 @@
 import socket
-from scapy.all import srp, Ether
-from scapy.layers.l2 import ARP
+from scapy.all import srp
+from scapy.layers.l2 import Ether, ARP
 
 
 def resolve_hostname(ip: str) -> str:
