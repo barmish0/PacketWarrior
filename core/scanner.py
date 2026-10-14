@@ -14,7 +14,6 @@ def get_vendor(mac: str) -> str:
 def query_netbios_name(ip: str) -> str:
     """Attempts to query NetBIOS name on UDP port 137 for Windows/SMB devices."""
     try:
-        # NetBIOS Name Query packet payload
         nb_query = (
             b"\x82\x28\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"
             b"\x20\x43\x4b\x41\x41\x41\x41\x41\x41\x41\x41\x41"
@@ -25,7 +24,6 @@ def query_netbios_name(ip: str) -> str:
         reply = sr1(pkt, timeout=0.5, verbose=False)
         if reply and reply.haslayer(UDP):
             raw_data = bytes(reply[UDP].payload)
-            # Parse NetBIOS name from answer records (offset 57, 15 bytes)
             if len(raw_data) >= 72:
                 name = raw_data[57:72].decode("utf-8", errors="ignore").strip()
                 if name:
@@ -43,9 +41,7 @@ def resolve_hostname(ip: str) -> str:
         return query_netbios_name(ip)
 
 def scan_network(subnet: str = "192.168.1.0/24", timeout: int = 4, retry: int = 1):
-    """
-    Sends ARP requests with retries and inspects MAC OUI + hostnames.
-    """
+    """Sends ARP requests with retries and inspects MAC OUI + hostnames."""
     print(f"[*] Scanning subnet: {subnet} (Timeout: {timeout}s, Retries: {retry})...")
 
     broadcast_request = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=subnet)
@@ -72,9 +68,9 @@ def display_scan(subnet: str = "192.168.1.0/24"):
     results = scan_network(subnet)
 
     header = f"{'IP Address':<16} {'MAC Address':<18} {'Vendor':<22} {'Hostname'}"
-    print("\n" + "=" * len(header) + "=" * 10)
+    print("\n" + "=" * (len(header) + 10))
     print(header)
-    print("=" * len(header) + "=" * 10)
+    print("=" * (len(header) + 10))
 
     if not results:
         print("No devices found or scan timed out.")
@@ -82,7 +78,7 @@ def display_scan(subnet: str = "192.168.1.0/24"):
         for dev in results:
             print(f"{dev['ip']:<16} {dev['mac']:<18} {dev['vendor']:<22} {dev['hostname']}")
 
-    print("=" * len(header) + "=" * 10)
+    print("=" * (len(header) + 10))
     print(f"[+] Found {len(results)} active device(s).\n")
 
 if __name__ == "__main__":

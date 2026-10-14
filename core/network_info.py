@@ -24,25 +24,19 @@ def get_default_gateway() -> str:
     my_ip = get_my_ip()
 
     try:
-        # Search all routes in Scapy's table
-        # Format of each entry: (destination, netmask, gateway, iface, output_ip, metric)
         default_routes = []
         for dest, mask, gw, iface, out_ip, metric in conf.route.routes:
-            # A default gateway route targets 0.0.0.0/0
             if dest == 0 and mask == 0:
-                # The gateway must be a real remote address, not 0.0.0.0 and not our own host IP
                 if gw not in ("0.0.0.0", my_ip):
                     default_routes.append((metric, gw))
 
         if default_routes:
-            # Pick the default route with the lowest metric (highest priority)
             default_routes.sort(key=lambda x: x[0])
             return default_routes[0][1]
 
     except Exception:
         pass
 
-    # Safe fallback if running in an environment without internet/routes
     octets = my_ip.split(".")
     return f"{octets[0]}.{octets[1]}.{octets[2]}.1"
 
@@ -54,6 +48,7 @@ def get_my_mac(iface=None) -> str:
         return get_if_hwaddr(target_iface)
     except Exception:
         return "00:00:00:00:00:00"
+
 
 def get_my_subnet() -> str:
     """Calculates the local CIDR subnet mask."""

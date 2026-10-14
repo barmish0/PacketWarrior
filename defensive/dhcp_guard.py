@@ -8,9 +8,9 @@ from scapy.layers.inet import IP, UDP
 from scapy.layers.l2 import Ether
 
 # Attack tracking parameters
-RATE_LIMIT_WINDOW = 3.0       # Lookback period in seconds
-MAX_REQUESTS_IN_WINDOW = 6    # Alert threshold for rapid DHCP transactions
-COOLDOWN_PERIOD = 2.0         # Minimum seconds between repeated alert banners
+RATE_LIMIT_WINDOW = 3.0  # Lookback period in seconds
+MAX_REQUESTS_IN_WINDOW = 6  # Alert threshold for rapid DHCP transactions
+COOLDOWN_PERIOD = 2.0  # Minimum seconds between repeated alert banners
 
 request_history = deque()
 blocked_sources = set()

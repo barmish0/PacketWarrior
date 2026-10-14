@@ -48,7 +48,7 @@ def check_packet(packet):
         print("[BLUE ALERT] ARP SPOOFING / POISONING DETECTED!")
         print(f"Target IP: {sender_ip}")
         print(f"Authentic MAC: {real_mac}")
-        print(f"Attacker MAC:  {sender_mac}")
+        print(f"Attacker MAC: {sender_mac}")
         print("=" * 55)
 
         # Broadcast correction

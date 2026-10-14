@@ -3,16 +3,9 @@ from scapy.all import sniff
 
 class NetworkSniffer:
     def __init__(self, network_interface = None, packet_filter = None, action_on_packet = None):
-        # Network interface ('card') to listen on (None selects the system default)
         self.network_interface = network_interface
-
-        # Filter - protocol, specific ip/mac, port number, etc..., (uses BPF grammar)
         self.packet_filter = packet_filter
-
-        # The function that handles each packet received after filterd
         self.action_on_packet = action_on_packet
-
-        # Worker thread and stop flag
         self.sniffer_thread = None
         self.should_stop = False
 
@@ -22,7 +15,7 @@ class NetworkSniffer:
             filter = self.packet_filter,
             prn = self.action_on_packet,
             stop_filter = self.check_if_should_stop,
-            store = False # important - to prevent RAM overflow
+            store = False
         )
 
     def check_if_should_stop(self):
