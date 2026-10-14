@@ -80,9 +80,14 @@ def defensive_menu():
         choice = input("Select: ").strip()
 
         # Option 1: Start real-time ARP spoofing detector and auto-healer
+        from defensive.arp_guard import check_packet, seed_trusted_baseline
+
+        # Inside defensive_menu():
         if choice == "1":
+            print("[*] Initializing ARP baseline...")
+            seed_trusted_baseline()
             print("[*] ARP Guard started. Listening...")
-            sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_arp_packet)
+            sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_packet)
             sniffer.start()
             input("Press Enter to stop ARP Guard...\n")
             sniffer.stop()
