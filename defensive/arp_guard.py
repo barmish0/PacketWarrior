@@ -59,33 +59,52 @@ def seed_baseline():
 
 def heal_network(ip_address: str, real_mac: str, iface=None):
     """
-    Broadcasts a corrective Gratuitous ARP reply to restore
-    the legitimate IP-to-MAC mapping across local host caches.
+    Locks the authentic MAC in the local OS table so spoofed packets are ignored,
+    and sends corrective ARP replies to the router so return traffic reaches us.
     """
-    print(f"[FIX] Broadcasting real mapping: {ip_address} -> {real_mac}")
+    print(f"[FIX] Locking real mapping & healing router: {ip_address} -> {real_mac}")
 
-    # Flush poisoned entry locally on the host OS first
+    target_iface = iface or get_active_iface()
+    my_ip = get_my_ip()
+    my_mac = normalize_mac(get_my_mac())
     os_name = platform.system()
+
+    # 1. Lock the real MAC statically in our local OS ARP table
+    # Static entries cannot be overwritten by the attacker's ARP packets
     try:
-        # Both Windows and macOS ("Darwin") use 'arp -d <ip>'
-        if os_name in ("Windows", "Darwin"):
+        if os_name == "Darwin":  # macOS
             subprocess.run(f"arp -d {ip_address}", shell=True, capture_output=True)
-        else:
-            subprocess.run(f"ip neigh flush {ip_address}", shell=True, capture_output=True)
+            subprocess.run(f"arp -s {ip_address} {real_mac}", shell=True, capture_output=True)
+        elif os_name == "Windows":
+            win_mac = real_mac.replace(":", "-")
+            subprocess.run(f"arp -d {ip_address}", shell=True, capture_output=True)
+            subprocess.run(f"arp -s {ip_address} {win_mac}", shell=True, capture_output=True)
+        else:  # Linux
+            subprocess.run(f"ip neigh replace {ip_address} lladdr {real_mac} nud permanent dev {target_iface}", shell=True, capture_output=True)
     except Exception:
         pass
 
-    # Build Layer 2 Gratuitous ARP packet to force victims back to the authentic MAC
-    target_iface = iface or get_active_iface()
-    fix_packet = Ether(dst="ff:ff:ff:ff:ff:ff", src=real_mac) / ARP(
-        op=2,  # Operation 2 = ARP Reply / Gratuitous ARP
+    # 2. Heal the Router (Gateway) so it sends internet replies back to OUR real MAC
+    # Tells the router (ip_address / real_mac) that our IP (my_ip) is at our real MAC (my_mac)
+    fix_for_router = Ether(dst=real_mac, src=my_mac) / ARP(
+        op=2,
+        hwsrc=my_mac,
+        psrc=my_ip,
+        hwdst=real_mac,
+        pdst=ip_address
+    )
+
+    # 3. Broadcast the real router MAC to the rest of the network
+    fix_broadcast = Ether(dst="ff:ff:ff:ff:ff:ff", src=real_mac) / ARP(
+        op=2,
         hwsrc=real_mac,
         psrc=ip_address,
         hwdst="ff:ff:ff:ff:ff:ff",
         pdst=ip_address
     )
-    sendp(fix_packet, count=3, iface=target_iface, verbose=False)
 
+    # Send 5 rapid packets to overpower the attacker's 2-second interval
+    sendp([fix_for_router, fix_broadcast], count=5, inter=0.1, iface=target_iface, verbose=False)
 
 def trigger_alert(target_ip: str, real_mac: str, attacker_mac: str):
     """Prints the alert banner and automatically broadcasts correction."""
