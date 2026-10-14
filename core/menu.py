@@ -8,12 +8,15 @@ from defensive.dhcp_guard import check_dhcp_packet
 
 
 def offensive_menu():
+    """Handles the Red Team (Offensive) interactive submenu."""
+    # Automatically fetch local networking configuration details
     my_ip = get_my_ip()
     my_mac = get_my_mac()
     gateway = get_default_gateway()
     subnet = get_my_subnet()
 
     while True:
+        # Display current host status and available attack simulation options
         print("\n--- Offensive Mode (Red Team) ---")
         print(f"[*] Host IP: {my_ip} | MAC: {my_mac}")
         print(f"[*] Gateway: {gateway} | Subnet: {subnet}")
@@ -25,10 +28,12 @@ def offensive_menu():
 
         choice = input("Select: ").strip()
 
+        # Option 1: Trigger network reconnaissance scan
         if choice == "1":
             user_subnet = input(f"Enter subnet to scan [default {subnet}]: ").strip()
             display_scan(user_subnet if user_subnet else subnet)
 
+        # Option 2: Execute Layer 2 ARP poisoning/DoS attack
         elif choice == "2":
             victim = input("Victim IP: ").strip()
             if not victim:
@@ -44,21 +49,26 @@ def offensive_menu():
                 attacker_mac=user_mac if user_mac else my_mac
             )
 
+        # Option 3: Execute Layer 2 DHCP starvation attack
         elif choice == "3":
             dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
             start_starve(target_ip=dhcp_server if dhcp_server else gateway)
 
+        # Exit submenu loop
         elif choice == "0":
             break
 
 
 def defensive_menu():
+    """Handles the Blue Team (Defensive) interactive submenu."""
+    # Automatically fetch local networking configuration details
     my_ip = get_my_ip()
     my_mac = get_my_mac()
     gateway = get_default_gateway()
     subnet = get_my_subnet()
 
     while True:
+        # Display current host status and available defensive monitoring options
         print("\n--- Defensive Mode (Blue Team) ---")
         print(f"[*] Host IP: {my_ip} | MAC: {my_mac}")
         print(f"[*] Gateway: {gateway} | Subnet: {subnet}")
@@ -69,6 +79,7 @@ def defensive_menu():
 
         choice = input("Select: ").strip()
 
+        # Option 1: Start real-time ARP spoofing detector and auto-healer
         if choice == "1":
             print("[*] ARP Guard started. Listening...")
             sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_arp_packet)
@@ -77,6 +88,7 @@ def defensive_menu():
             sniffer.stop()
             print("[*] ARP Guard stopped.")
 
+        # Option 2: Start DHCP starvation detector, lease releaser, and firewall blocker
         elif choice == "2":
             dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
             target_gw = dhcp_server if dhcp_server else gateway
@@ -91,5 +103,6 @@ def defensive_menu():
             sniffer.stop()
             print("[*] DHCP Guard stopped.")
 
+        # Exit submenu loop
         elif choice == "0":
             break

@@ -7,10 +7,10 @@ from scapy.layers.dhcp import BOOTP, DHCP
 from scapy.layers.inet import IP, UDP
 from scapy.layers.l2 import Ether
 
-# Attack tracking parameters
-RATE_LIMIT_WINDOW = 3.0  # Lookback period in seconds
-MAX_REQUESTS_IN_WINDOW = 6  # Alert threshold for rapid DHCP transactions
-COOLDOWN_PERIOD = 2.0  # Minimum seconds between repeated alert banners
+# Attack tracking and rate-limiting parameters
+RATE_LIMIT_WINDOW = 3.0  # Sliding time window in seconds
+MAX_REQUESTS_IN_WINDOW = 6  # Maximum allowed rapid DHCP transactions before alerting
+COOLDOWN_PERIOD = 2.0  # Minimum seconds between repeated console alert banners
 
 request_history = deque()
 blocked_sources = set()
@@ -22,10 +22,11 @@ def send_dhcp_release(claimed_ip: str, client_mac: str, server_ip: str, iface=No
     Counter-action: Forcibly releases a starved IP lease back to the DHCP pool.
     """
     try:
-        # BOOTP chaddr field must be exactly 16 bytes (6-byte MAC + 10 null bytes)
+        # BOOTP chaddr (client hardware address) must be exactly 16 bytes padded
         raw_mac = bytes.fromhex(client_mac.replace(":", "").replace("-", ""))
         chaddr_padded = raw_mac.ljust(16, b"\x00")
 
+        # Construct crafted DHCP RELEASE packet
         rel = Ether(src=client_mac, dst="ff:ff:ff:ff:ff:ff")
         rel /= IP(src=claimed_ip, dst=server_ip)
         rel /= UDP(sport=68, dport=67)
@@ -52,6 +53,7 @@ def block_ip_firewall(source_ip: str):
 
     os_type = platform.system()
     try:
+        # Inject firewall rules based on the host operating system
         if os_type == "Windows":
             cmd = (
                 f'netsh advfirewall firewall add rule name="PW_Block_{source_ip}" '
@@ -82,7 +84,7 @@ def check_dhcp_packet(packet, server_ip="192.168.1.1"):
     options = {opt[0]: opt[1] for opt in packet[DHCP].options if isinstance(opt, tuple)}
     msg_type = options.get("message-type")
 
-    # 1 = Discover, 3 = Request
+    # Filter only for DHCP Discover (1) or Request (3) messages
     if msg_type not in (1, 3, "discover", "request"):
         return
 
@@ -90,16 +92,16 @@ def check_dhcp_packet(packet, server_ip="192.168.1.1"):
     src_mac = packet[Ether].src if packet.haslayer(Ether) else "Unknown"
     requested_ip = options.get("requested_addr", packet[BOOTP].ciaddr)
 
-    # 1. Update sliding window
+    # 1. Update sliding request history window
     request_history.append((current_time, src_mac))
     while request_history and request_history[0][0] < current_time - RATE_LIMIT_WINDOW:
         request_history.popleft()
 
-    # 2. Check for threshold breach
+    # 2. Check if request frequency breaches safety threshold
     if len(request_history) >= MAX_REQUESTS_IN_WINDOW:
         unique_macs = {mac for _, mac in request_history}
 
-        # Apply cooldown to avoid flooding the console on every packet
+        # Apply alert cooldown to prevent console flood
         if current_time - last_alert_time > COOLDOWN_PERIOD:
             print("\n" + "!" * 65)
             print(f"[BLUE ALERT] DHCP Starvation detected! {len(request_history)} requests in {RATE_LIMIT_WINDOW}s")
@@ -107,7 +109,7 @@ def check_dhcp_packet(packet, server_ip="192.168.1.1"):
             print("!" * 65)
             last_alert_time = current_time
 
-        # 3. Active remediation: Release claimed leases if IP is specified
+        # 3. Active remediation: Release claimed leases back to pool
         if requested_ip and requested_ip != "0.0.0.0":
             send_dhcp_release(
                 claimed_ip=requested_ip,
@@ -115,6 +117,6 @@ def check_dhcp_packet(packet, server_ip="192.168.1.1"):
                 server_ip=server_ip
             )
 
-        # 4. Host firewall mitigation (if Layer 3 source is present and not 0.0.0.0)
+        # 4. Host firewall mitigation against attacker IP
         if packet.haslayer(IP) and packet[IP].src not in ("0.0.0.0", "255.255.255.255"):
             block_ip_firewall(packet[IP].src)

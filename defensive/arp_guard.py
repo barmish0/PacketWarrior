@@ -1,7 +1,7 @@
 from scapy.all import sendp
 from scapy.layers.l2 import Ether, ARP
 
-# A simple dictionary to remember: {"IP": "MAC"}
+# Local baseline dictionary to track trusted IP-to-MAC associations: {"IP": "MAC"}
 known_devices = {}
 
 
@@ -12,9 +12,9 @@ def heal_network(ip_address: str, real_mac: str, iface=None):
     """
     print(f"[FIX] Broadcasting real mapping: {ip_address} -> {real_mac}")
 
-    # Use Layer 2 Ether frame over sendp for reliable physical delivery
+    # Build Layer 2 Gratuitous ARP packet to force victims back to the authentic MAC
     fix_packet = Ether(dst="ff:ff:ff:ff:ff:ff", src=real_mac) / ARP(
-        op=2,  # 2 = ARP Reply / Gratuitous ARP
+        op=2,  # Operation 2 = ARP Reply / Gratuitous ARP
         hwsrc=real_mac,
         psrc=ip_address,
         hwdst="ff:ff:ff:ff:ff:ff",
@@ -31,17 +31,17 @@ def check_packet(packet):
     sender_ip = packet[ARP].psrc
     sender_mac = packet[ARP].hwsrc.lower()
 
-    # Ignore empty, loopback, or broadcast sources
+    # Ignore irrelevant, loopback, or broadcast packets
     if sender_ip in ("0.0.0.0", "255.255.255.255") or sender_mac == "ff:ff:ff:ff:ff:ff":
         return
 
-    # First time seeing this IP: establish baseline
+    # First time seeing this IP: establish trusted baseline mapping
     if sender_ip not in known_devices:
         known_devices[sender_ip] = sender_mac
         print(f"[+] Saved baseline: {sender_ip} -> {sender_mac}")
         return
 
-    # Check for unauthorized MAC modification
+    # Check for unauthorized MAC modification (Spoofing indicator)
     real_mac = known_devices[sender_ip]
     if real_mac != sender_mac:
         print("\n" + "=" * 55)
@@ -51,5 +51,5 @@ def check_packet(packet):
         print(f"Attacker MAC: {sender_mac}")
         print("=" * 55)
 
-        # Broadcast correction
+        # Automatically broadcast correction to neutralize the attack
         heal_network(sender_ip, real_mac)

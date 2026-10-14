@@ -6,6 +6,7 @@ from scapy.layers.inet import IP, UDP
 def get_vendor(mac: str) -> str:
     """Extracts hardware manufacturer from MAC address OUI database."""
     try:
+        # Query Scapy's built-in MAC vendor database (OUI prefix lookup)
         vendor = conf.manufdb._resolve_MAC(mac)
         return vendor if vendor != mac else "Unknown Vendor"
     except Exception:
@@ -14,6 +15,7 @@ def get_vendor(mac: str) -> str:
 def query_netbios_name(ip: str) -> str:
     """Attempts to query NetBIOS name on UDP port 137 for Windows/SMB devices."""
     try:
+        # Standard NetBIOS Name Query packet payload structure
         nb_query = (
             b"\x82\x28\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00"
             b"\x20\x43\x4b\x41\x41\x41\x41\x41\x41\x41\x41\x41"
@@ -24,6 +26,7 @@ def query_netbios_name(ip: str) -> str:
         reply = sr1(pkt, timeout=0.5, verbose=False)
         if reply and reply.haslayer(UDP):
             raw_data = bytes(reply[UDP].payload)
+            # Parse NetBIOS hostname bytes from the response buffer
             if len(raw_data) >= 72:
                 name = raw_data[57:72].decode("utf-8", errors="ignore").strip()
                 if name:
@@ -38,12 +41,14 @@ def resolve_hostname(ip: str) -> str:
         host, _, _ = socket.gethostbyaddr(ip)
         return host
     except (socket.herror, socket.gaierror, socket.timeout):
+        # Fallback to NetBIOS query if standard reverse DNS fails
         return query_netbios_name(ip)
 
 def scan_network(subnet: str = "192.168.1.0/24", timeout: int = 4, retry: int = 1):
     """Sends ARP requests with retries and inspects MAC OUI + hostnames."""
     print(f"[*] Scanning subnet: {subnet} (Timeout: {timeout}s, Retries: {retry})...")
 
+    # Construct Layer 2 broadcast ARP request to discover active hosts
     broadcast_request = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=subnet)
     answered, _ = srp(broadcast_request, timeout=timeout, retry=retry, verbose=False)
 
