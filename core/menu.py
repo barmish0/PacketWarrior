@@ -1,14 +1,23 @@
 from core.sniffer import NetworkSniffer
+from core.scanner import display_scan
+from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my_subnet
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
-from defensive.arp_guard import check_packet
-from core.scanner import display_scan
+from defensive.arp_guard import check_packet as check_arp_packet
 from defensive.dhcp_guard import check_dhcp_packet
 
 
 def offensive_menu():
+    my_ip = get_my_ip()
+    my_mac = get_my_mac()
+    gateway = get_default_gateway()
+    subnet = get_my_subnet()
+
     while True:
         print("\n--- Offensive Mode (Red Team) ---")
+        print(f"[*] Host IP: {my_ip} | MAC: {my_mac}")
+        print(f"[*] Gateway: {gateway} | Subnet: {subnet}")
+        print("=" * 50)
         print("[1] Scan Network")
         print("[2] ARP Spoofer (L2)")
         print("[3] DHCP Starvation (L2)")
@@ -17,31 +26,43 @@ def offensive_menu():
         choice = input("Select: ").strip()
 
         if choice == "1":
-            subnet = input("Enter subnet to scan [default 192.168.1.0/24]: ").strip()
-            if not subnet:
-                subnet = "192.168.1.0/24"
-            display_scan(subnet)
+            user_subnet = input(f"Enter subnet to scan [default {subnet}]: ").strip()
+            display_scan(user_subnet if user_subnet else subnet)
 
         elif choice == "2":
-            victim = input("Victim IP [default 192.168.1.194]: ").strip()
+            victim = input("Victim IP: ").strip()
             if not victim:
-                victim = "192.168.1.194"
-            continuous_arp_dos(victim_ip=victim)
+                print("[-] Victim IP is required.")
+                continue
+
+            user_gw = input(f"Gateway IP [default {gateway}]: ").strip()
+            user_mac = input(f"Attacker MAC [default {my_mac}]: ").strip()
+
+            continuous_arp_dos(
+                victim_ip=victim,
+                gateway_ip=user_gw if user_gw else gateway,
+                attacker_mac=user_mac if user_mac else my_mac
+            )
 
         elif choice == "3":
-            dhcp_server = input("Enter DHCP Server IP [default 192.168.1.1]: ").strip()
-            if not dhcp_server:
-                dhcp_server = "192.168.1.1"
-
-            start_starve(target_ip=dhcp_server)
+            dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
+            start_starve(target_ip=dhcp_server if dhcp_server else gateway)
 
         elif choice == "0":
             break
 
 
 def defensive_menu():
+    my_ip = get_my_ip()
+    my_mac = get_my_mac()
+    gateway = get_default_gateway()
+    subnet = get_my_subnet()
+
     while True:
         print("\n--- Defensive Mode (Blue Team) ---")
+        print(f"[*] Host IP: {my_ip} | MAC: {my_mac}")
+        print(f"[*] Gateway: {gateway} | Subnet: {subnet}")
+        print("=" * 50)
         print("[1] Run ARP Guard (L2)")
         print("[2] Run DHCP Guard (L2)")
         print("[0] Back to Main Menu")
@@ -50,21 +71,20 @@ def defensive_menu():
 
         if choice == "1":
             print("[*] ARP Guard started. Listening...")
-            sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_packet)
+            sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_arp_packet)
             sniffer.start()
             input("Press Enter to stop ARP Guard...\n")
             sniffer.stop()
             print("[*] ARP Guard stopped.")
 
         elif choice == "2":
-            dhcp_server = input("Enter DHCP Server IP [default 192.168.1.1]: ").strip()
-            if not dhcp_server:
-                dhcp_server = "192.168.1.1"
+            dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
+            target_gw = dhcp_server if dhcp_server else gateway
 
-            print(f"[*] DHCP Guard active. Monitoring ports 67/68 for attacks on {dhcp_server}...")
+            print(f"[*] DHCP Guard active. Monitoring ports 67/68 for attacks against {target_gw}...")
             sniffer = NetworkSniffer(
                 packet_filter="udp and (port 67 or port 68)",
-                action_on_packet=lambda pkt: check_dhcp_packet(pkt, server_ip=dhcp_server)
+                action_on_packet=lambda pkt: check_dhcp_packet(pkt, server_ip=target_gw)
             )
             sniffer.start()
             input("Press Enter to stop DHCP Guard...\n")

@@ -1,52 +1,55 @@
-from scapy.all import send
-from scapy.layers.l2 import ARP
+from scapy.all import sendp
+from scapy.layers.l2 import Ether, ARP
 
 # A simple dictionary to remember: {"IP": "MAC"}
 known_devices = {}
 
 
-def heal_network(ip_address, real_mac):
-    """Tell the network the real MAC address for this IP."""
-    print(f"[FIX] Sending real MAC {real_mac} for IP {ip_address}")
+def heal_network(ip_address: str, real_mac: str, iface=None):
+    """
+    Broadcasts a corrective Gratuitous ARP reply to restore
+    the legitimate IP-to-MAC mapping across local host caches.
+    """
+    print(f"[FIX] Broadcasting real mapping: {ip_address} -> {real_mac}")
 
-    # Send a broadcast message to fix everyone's memory
-    fix_packet = ARP(
-        op=2,  # 2 means reply
-        pdst="255.255.255.255",
-        hwdst="ff:ff:ff:ff:ff:ff",
+    # Use Layer 2 Ether frame over sendp for reliable physical delivery
+    fix_packet = Ether(dst="ff:ff:ff:ff:ff:ff", src=real_mac) / ARP(
+        op=2,  # 2 = ARP Reply / Gratuitous ARP
+        hwsrc=real_mac,
         psrc=ip_address,
-        hwsrc=real_mac
+        hwdst="ff:ff:ff:ff:ff:ff",
+        pdst=ip_address
     )
-    send(fix_packet, count=2, verbose=False)
+    sendp(fix_packet, count=3, iface=iface, verbose=False)
 
 
 def check_packet(packet):
-    """Check every ARP packet for fake MACs."""
+    """Inspects ARP traffic for conflicting MAC mappings."""
     if not packet.haslayer(ARP):
         return
 
     sender_ip = packet[ARP].psrc
     sender_mac = packet[ARP].hwsrc.lower()
 
-    # Skip empty or broadcast addresses
-    if sender_ip == "0.0.0.0" or sender_mac == "ff:ff:ff:ff:ff:ff":
+    # Ignore empty, loopback, or broadcast sources
+    if sender_ip in ("0.0.0.0", "255.255.255.255") or sender_mac == "ff:ff:ff:ff:ff:ff":
         return
 
-    # If this is the first time seeing this IP, save it
+    # First time seeing this IP: establish baseline
     if sender_ip not in known_devices:
         known_devices[sender_ip] = sender_mac
-        print(f"[+] Saved: {sender_ip} -> {sender_mac}")
+        print(f"[+] Saved baseline: {sender_ip} -> {sender_mac}")
         return
 
-    # Check if the MAC changed unexpectedly
+    # Check for unauthorized MAC modification
     real_mac = known_devices[sender_ip]
     if real_mac != sender_mac:
-        print("\n" + "=" * 40)
-        print("! WARNING: ARP ATTACK DETECTED !")
+        print("\n" + "=" * 55)
+        print("[BLUE ALERT] ARP SPOOFING / POISONING DETECTED!")
         print(f"Target IP: {sender_ip}")
-        print(f"Real MAC:  {real_mac}")
-        print(f"Fake MAC:  {sender_mac}")
-        print("=" * 40)
+        print(f"Authentic MAC: {real_mac}")
+        print(f"Attacker MAC:  {sender_mac}")
+        print("=" * 55)
 
-        # Fix the network
+        # Broadcast correction
         heal_network(sender_ip, real_mac)
