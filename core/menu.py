@@ -3,7 +3,7 @@ from core.scanner import display_scan
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my_subnet
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
-from defensive.arp_guard import check_packet as check_arp_packet
+from defensive.arp_guard import check_packet, seed_baseline
 from defensive.dhcp_guard import check_dhcp_packet
 
 
@@ -79,13 +79,12 @@ def defensive_menu():
 
         choice = input("Select: ").strip()
 
-        # Option 1: Start real-time ARP spoofing detector and auto-healer
-        from defensive.arp_guard import check_packet, seed_trusted_baseline
-
         # Inside defensive_menu():
+
+        # Option 1: Start real-time ARP spoofing detector and auto-healer
         if choice == "1":
             print("[*] Initializing ARP baseline...")
-            seed_trusted_baseline()
+            seed_baseline()
             print("[*] ARP Guard started. Listening...")
             sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_packet)
             sniffer.start()
