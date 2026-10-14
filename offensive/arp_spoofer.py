@@ -5,7 +5,7 @@ from scapy.layers.l2 import ARP
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway
 
 def continuous_arp_dos(
-    victim_ip: str,
+    victim_ip: str = None,
     gateway_ip: str = None,
     attacker_mac: str = None,
     iface: str = None,
