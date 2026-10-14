@@ -1,11 +1,34 @@
+import re
+import time
 import platform
 import subprocess
+import threading
 from scapy.all import sendp, srp1, conf
 from scapy.layers.l2 import Ether, ARP
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway
 
-# Trusted baseline dictionary: {"IP": "MAC"}
+# Local baseline dictionary to track trusted IP-to-MAC associations: {"IP": "MAC"}
 known_devices = {}
+is_monitoring = False
+
+
+def normalize_mac(mac_str: str) -> str:
+    """
+    Converts macOS shorthand MACs (e.g. 'd4:92:5e:e9:17:4')
+    into standard 2-digit zero-padded lowercase format ('d4:92:5e:e9:17:04').
+    """
+    parts = mac_str.replace("-", ":").lower().split(":")
+    if len(parts) == 6:
+        return ":".join(p.zfill(2) for p in parts)
+    return mac_str.lower()
+
+
+def get_active_iface():
+    """Returns the exact network interface used for outbound traffic."""
+    try:
+        return conf.route.route("8.8.8.8")[0]
+    except Exception:
+        return conf.iface
 
 
 def seed_baseline():
@@ -14,8 +37,9 @@ def seed_baseline():
     BEFORE starting the sniffer, so fake attack packets cannot poison the baseline.
     """
     my_ip = get_my_ip()
-    my_mac = get_my_mac().lower()
+    my_mac = normalize_mac(get_my_mac())
     gateway_ip = get_default_gateway()
+    iface = get_active_iface()
 
     # Save our own interface
     known_devices[my_ip] = my_mac
@@ -23,34 +47,38 @@ def seed_baseline():
     # Resolve legitimate router MAC directly
     print(f"[*] Resolving authentic gateway MAC for {gateway_ip}...")
     query = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=gateway_ip)
-    ans = srp1(query, timeout=2, verbose=False)
+    ans = srp1(query, timeout=2, iface=iface, verbose=False)
 
     if ans and ans.haslayer(ARP):
-        real_gw_mac = ans[ARP].hwsrc.lower()
+        real_gw_mac = normalize_mac(ans[ARP].hwsrc)
         known_devices[gateway_ip] = real_gw_mac
         print(f"[+] Trusted Gateway Baseline: {gateway_ip} -> {real_gw_mac}")
     else:
-        print(f"[!] Warning: Could not resolve gateway MAC. Guard will learn dynamically.")
+        print("[!] Warning: Could not resolve gateway MAC via packet probe.")
 
 
 def heal_network(ip_address: str, real_mac: str, iface=None):
-    """Broadcasts a corrective ARP reply to restore genuine cache mappings."""
-    print(f"[FIX] Restoring real mapping: {ip_address} -> {real_mac}")
+    """
+    Broadcasts a corrective Gratuitous ARP reply to restore
+    the legitimate IP-to-MAC mapping across local host caches.
+    """
+    print(f"[FIX] Broadcasting real mapping: {ip_address} -> {real_mac}")
 
-    # Flush locally on the host OS
+    # Flush poisoned entry locally on the host OS first
     os_name = platform.system()
     try:
-        if os_name == "Windows":
+        # Both Windows and macOS ("Darwin") use 'arp -d <ip>'
+        if os_name in ("Windows", "Darwin"):
             subprocess.run(f"arp -d {ip_address}", shell=True, capture_output=True)
         else:
             subprocess.run(f"ip neigh flush {ip_address}", shell=True, capture_output=True)
     except Exception:
         pass
 
-    # Send gratuitous ARP to realign neighbor caches
-    target_iface = iface or conf.iface
+    # Build Layer 2 Gratuitous ARP packet to force victims back to the authentic MAC
+    target_iface = iface or get_active_iface()
     fix_packet = Ether(dst="ff:ff:ff:ff:ff:ff", src=real_mac) / ARP(
-        op=2,
+        op=2,  # Operation 2 = ARP Reply / Gratuitous ARP
         hwsrc=real_mac,
         psrc=ip_address,
         hwdst="ff:ff:ff:ff:ff:ff",
@@ -59,32 +87,82 @@ def heal_network(ip_address: str, real_mac: str, iface=None):
     sendp(fix_packet, count=3, iface=target_iface, verbose=False)
 
 
+def trigger_alert(target_ip: str, real_mac: str, attacker_mac: str):
+    """Prints the alert banner and automatically broadcasts correction."""
+    print("\n" + "=" * 55)
+    print("[BLUE ALERT] ARP SPOOFING / POISONING DETECTED!")
+    print(f"Target IP:     {target_ip}")
+    print(f"Authentic MAC: {real_mac}")
+    print(f"Attacker MAC:  {attacker_mac}")
+    print("=" * 55)
+
+    # Automatically broadcast correction to neutralize the attack
+    heal_network(target_ip, real_mac)
+
+
 def check_packet(packet):
-    """Inspects every incoming ARP frame."""
+    """Inspects ARP traffic for conflicting MAC mappings."""
     if not packet.haslayer(ARP):
         return
 
     sender_ip = packet[ARP].psrc
-    sender_mac = packet[ARP].hwsrc.lower()
+    sender_mac = normalize_mac(packet[ARP].hwsrc)
 
-    # Skip loopbacks, broadcasts, or incomplete frames
+    # Ignore irrelevant, loopback, or broadcast packets
     if sender_ip in ("0.0.0.0", "255.255.255.255") or sender_mac == "ff:ff:ff:ff:ff:ff":
         return
 
-    # First encounter of this IP: record it
+    # First time seeing this IP: establish trusted baseline mapping
     if sender_ip not in known_devices:
         known_devices[sender_ip] = sender_mac
         print(f"[+] Saved baseline: {sender_ip} -> {sender_mac}")
         return
 
-    # Detection logic: Same IP, different MAC address
+    # Check for unauthorized MAC modification (Spoofing indicator)
     real_mac = known_devices[sender_ip]
     if real_mac != sender_mac:
-        print("\n" + "=" * 55)
-        print("[BLUE ALERT] ARP SPOOFING / POISONING DETECTED!")
-        print(f"Target IP:     {sender_ip}")
-        print(f"Authentic MAC: {real_mac}")
-        print(f"Attacker MAC:  {sender_mac}")
-        print("=" * 55)
+        trigger_alert(sender_ip, real_mac, sender_mac)
 
-        heal_network(sender_ip, real_mac)
+
+def poll_os_arp_table():
+    """
+    Backup monitor: Directly inspects the OS ARP cache ('arp -a') every second.
+    Guarantees detection on Windows and macOS even if Npcap/BPF misses frames.
+    """
+    global is_monitoring
+    is_monitoring = True
+
+    # Matches both standard 2-digit and macOS 1-digit hex bytes
+    arp_regex = re.compile(
+        r"\(?(\d+\.\d+\.\d+\.\d+)\)?\s+(?:at\s+)?([0-9a-fA-F]{1,2}(?:[:\-][0-9a-fA-F]{1,2}){5})"
+    )
+
+    def _poll():
+        while is_monitoring:
+            try:
+                output = subprocess.check_output("arp -a", shell=True, text=True)
+                for line in output.splitlines():
+                    match = arp_regex.search(line)
+                    if match:
+                        ip = match.group(1)
+                        mac = normalize_mac(match.group(2))
+
+                        # Skip broadcast and multicast addresses
+                        if ip in ("255.255.255.255", "224.0.0.22") or mac == "ff:ff:ff:ff:ff:ff":
+                            continue
+
+                        # Check if the OS ARP table entry changed from our trusted baseline
+                        if ip in known_devices and known_devices[ip] != mac:
+                            trigger_alert(ip, known_devices[ip], mac)
+            except Exception:
+                pass
+            time.sleep(1.0)
+
+    t = threading.Thread(target=_poll, daemon=True)
+    t.start()
+
+
+def stop_os_arp_polling():
+    """Stops the background OS ARP table polling thread."""
+    global is_monitoring
+    is_monitoring = False

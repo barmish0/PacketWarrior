@@ -3,7 +3,7 @@ from core.scanner import display_scan
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my_subnet
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
-from defensive.arp_guard import check_packet, seed_baseline
+from defensive.arp_guard import check_packet, seed_baseline, poll_os_arp_table, stop_os_arp_polling
 from defensive.dhcp_guard import check_dhcp_packet
 
 
@@ -83,13 +83,19 @@ def defensive_menu():
 
         # Option 1: Start real-time ARP spoofing detector and auto-healer
         if choice == "1":
+            # Pre-seed the real gateway MAC and start the OS cache monitor
             print("[*] Initializing ARP baseline...")
             seed_baseline()
+            poll_os_arp_table()
+
             print("[*] ARP Guard started. Listening...")
             sniffer = NetworkSniffer(packet_filter="arp", action_on_packet=check_packet)
             sniffer.start()
             input("Press Enter to stop ARP Guard...\n")
+
+            # Cleanly stop both the packet sniffer and the OS cache monitor
             sniffer.stop()
+            stop_os_arp_polling()
             print("[*] ARP Guard stopped.")
 
         # Option 2: Start DHCP starvation detector, lease releaser, and firewall blocker
