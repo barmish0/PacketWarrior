@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="made changes">
-      <change afterPath="$PROJECT_DIR$/defensive/dhcp_guard.py" afterDir="false" />
+    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="made changes, added dhcp_guard.py">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/offensive/dhcp_starvation.py" beforeDir="false" afterPath="$PROJECT_DIR$/offensive/dhcp_starvation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/scanner.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/scanner.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,7 +126,15 @@
       <option name="project" value="LOCAL‎" />
       <updated>1791840764334</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL‎-00007" summary="made changes, added dhcp_guard.py">
+      <option name="closed" value="true" />
+      <created>1791842026149</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL‎-00007" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1791842026149</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -137,6 +143,7 @@
     <MESSAGE value="added scanner.py, arp_guard.py,&#10;modified some files." />
     <MESSAGE value="added arp_spoofer.py" />
     <MESSAGE value="made changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="made changes" />
+    <MESSAGE value="made changes, added dhcp_guard.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="made changes, added dhcp_guard.py" />
   </component>
 </project>

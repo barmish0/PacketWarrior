@@ -9,9 +9,9 @@ from defensive.dhcp_guard import check_dhcp_packet
 def offensive_menu():
     while True:
         print("\n--- Offensive Mode (Red Team) ---")
-        print("[1] Scan Network (Find Targets)")
-        print("[2] ARP Spoofer")
-        print("[3] DHCP Starvation")
+        print("[1] Scan Network")
+        print("[2] ARP Spoofer (L2)")
+        print("[3] DHCP Starvation (L2)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
@@ -42,8 +42,8 @@ def offensive_menu():
 def defensive_menu():
     while True:
         print("\n--- Defensive Mode (Blue Team) ---")
-        print("[1] Run ARP Guard")
-        print("[2] Run DHCP Guard (Starvation Defense)")
+        print("[1] Run ARP Guard (L2)")
+        print("[2] Run DHCP Guard (L2)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
