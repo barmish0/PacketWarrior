@@ -80,7 +80,11 @@ def heal_network(ip_address: str, real_mac: str, iface=None):
             subprocess.run(f"arp -d {ip_address}", shell=True, capture_output=True)
             subprocess.run(f"arp -s {ip_address} {win_mac}", shell=True, capture_output=True)
         else:  # Linux
-            subprocess.run(f"ip neigh replace {ip_address} lladdr {real_mac} nud permanent dev {target_iface}", shell=True, capture_output=True)
+            subprocess.run(
+                f"ip neigh replace {ip_address} lladdr {real_mac} nud permanent dev {target_iface}",
+                shell=True,
+                capture_output=True
+            )
     except Exception:
         pass
 
@@ -94,9 +98,9 @@ def heal_network(ip_address: str, real_mac: str, iface=None):
         pdst=ip_address
     )
 
-    # 3. Broadcast the real router MAC to the rest of the network
+    # 3. Build Layer 2 Gratuitous ARP packet to force victims back to the authentic MAC
     fix_broadcast = Ether(dst="ff:ff:ff:ff:ff:ff", src=real_mac) / ARP(
-        op=2,
+        op=2,  # Operation 2 = ARP Reply / Gratuitous ARP
         hwsrc=real_mac,
         psrc=ip_address,
         hwdst="ff:ff:ff:ff:ff:ff",
@@ -105,6 +109,7 @@ def heal_network(ip_address: str, real_mac: str, iface=None):
 
     # Send 5 rapid packets to overpower the attacker's 2-second interval
     sendp([fix_for_router, fix_broadcast], count=5, inter=0.1, iface=target_iface, verbose=False)
+
 
 def trigger_alert(target_ip: str, real_mac: str, attacker_mac: str):
     """Prints the alert banner and automatically broadcasts correction."""
@@ -185,3 +190,17 @@ def stop_os_arp_polling():
     """Stops the background OS ARP table polling thread."""
     global is_monitoring
     is_monitoring = False
+
+
+def cleanup_static_routes(gateway_ip: str = None):
+    """Reverts static ARP table locks on exit so the laptop roams freely on other networks."""
+    target_gw = gateway_ip or get_default_gateway()
+    os_name = platform.system()
+    try:
+        if os_name in ("Windows", "Darwin"):
+            subprocess.run(f"arp -d {target_gw}", shell=True, capture_output=True)
+        else:
+            subprocess.run(f"ip neigh del {target_gw} dev {get_active_iface()}", shell=True, capture_output=True)
+        print(f"[*] Restored dynamic ARP routing for {target_gw}.")
+    except Exception:
+        pass

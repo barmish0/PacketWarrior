@@ -5,10 +5,10 @@ from scapy.all import conf, get_if_hwaddr
 
 def get_my_ip() -> str:
     """Finds the local IP address used for outbound internet traffic."""
-    # Create a dummy UDP socket to evaluate active routing path
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # Connecting to an external address forces the OS to pick the correct active interface IP
+        # Connecting to an external address (without sending data) forces
+        # the OS routing table to select the primary outbound interface.
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
     except Exception:
@@ -26,49 +26,57 @@ def get_default_gateway() -> str:
     my_ip = get_my_ip()
 
     try:
-        # Search all routes in Scapy's internal routing table
+        # Search all routes in Scapy's table
+        # Format of each entry: (destination, netmask, gateway, iface, output_ip, metric)
         default_routes = []
         for dest, mask, gw, iface, out_ip, metric in conf.route.routes:
-            # Default gateway routes target destination 0.0.0.0 with netmask 0.0.0.0
+            # A default gateway route targets 0.0.0.0/0
             if dest == 0 and mask == 0:
-                # Exclude invalid gateway entries like 0.0.0.0 or the host's own IP
+                # The gateway must be a real remote address, not 0.0.0.0 and not our own host IP
                 if gw not in ("0.0.0.0", my_ip):
                     default_routes.append((metric, gw))
 
         if default_routes:
-            # Sort by metric to pick the highest priority route (lowest metric value)
+            # Pick the default route with the lowest metric (highest priority)
             default_routes.sort(key=lambda x: x[0])
             return default_routes[0][1]
-
     except Exception:
         pass
 
-    # Safe mathematical fallback if routing table lookup fails
+    # Safe fallback if running in an environment without internet/routes
     octets = my_ip.split(".")
     return f"{octets[0]}.{octets[1]}.{octets[2]}.1"
 
 
 def get_my_mac(iface=None) -> str:
-    """Resolves the MAC address of the active network interface."""
+    """Resolves the MAC address cleanly across Windows, macOS, and Linux."""
     try:
-        target_iface = iface or conf.iface
+        target_iface = iface or conf.route.route("8.8.8.8")[0]
         return get_if_hwaddr(target_iface)
     except Exception:
-        return "00:00:00:00:00:00"
+        # Fallback to general default interface
+        try:
+            return get_if_hwaddr(conf.iface)
+        except Exception:
+            return "00:00:00:00:00:00"
 
 
 def get_my_subnet() -> str:
-    """Calculates the local CIDR subnet mask."""
+    """
+    Calculates the CIDR subnet (e.g., '192.168.1.0/24')
+    for the primary network interface.
+    """
     my_ip = get_my_ip()
-    # Match local IP against active routing entries to determine network mask
+    # Search Scapy routing table for matching interface route
     for net, mask, gw, iface, addr, metric in conf.route.routes:
         if addr == my_ip and net != 0 and mask != 0:
             try:
+                # Convert 32-bit int netmask to prefix length
                 cidr = ipaddress.IPv4Network((net, mask), strict=False)
                 return str(cidr)
             except Exception:
                 pass
 
-    # Standard /24 fallback based on local IP structure
+    # Fallback to standard /24 assumption if routing lookup fails
     octets = my_ip.split(".")
     return f"{octets[0]}.{octets[1]}.{octets[2]}.0/24"
