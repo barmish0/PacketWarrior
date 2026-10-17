@@ -4,7 +4,7 @@ from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
 from defensive.arp_guard import check_packet, seed_baseline, poll_os_arp_table, stop_os_arp_polling
-from defensive.dhcp_guard import check_dhcp_packet
+from defensive.dhcp_guard import check_dhcp_packet, start_dhcp_reaper, stop_dhcp_reaper
 
 
 def offensive_menu():
@@ -104,6 +104,7 @@ def defensive_menu():
             target_gw = dhcp_server if dhcp_server else gateway
 
             print(f"[*] DHCP Guard active. Monitoring ports 67/68 for attacks against {target_gw}...")
+            start_dhcp_reaper(server_ip=target_gw)
             sniffer = NetworkSniffer(
                 packet_filter="udp and (port 67 or port 68)",
                 action_on_packet=lambda pkt: check_dhcp_packet(pkt, server_ip=target_gw)
@@ -111,6 +112,7 @@ def defensive_menu():
             sniffer.start()
             input("Press Enter to stop DHCP Guard...\n")
             sniffer.stop()
+            stop_dhcp_reaper()
             print("[*] DHCP Guard stopped.")
 
         # Exit submenu loop
