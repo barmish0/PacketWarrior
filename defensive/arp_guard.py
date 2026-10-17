@@ -6,6 +6,7 @@ import threading
 from scapy.all import sendp, srp1, conf
 from scapy.layers.l2 import Ether, ARP
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway
+from core.logger import log_security_event
 
 # Local baseline dictionary to track trusted IP-to-MAC associations: {"IP": "MAC"}
 known_devices = {}
@@ -112,13 +113,23 @@ def heal_network(ip_address: str, real_mac: str, iface=None):
 
 
 def trigger_alert(target_ip: str, real_mac: str, attacker_mac: str):
-    """Prints the alert banner and automatically broadcasts correction."""
+    """Prints the alert banner, logs the event, and automatically broadcasts correction."""
     print("\n" + "=" * 55)
     print("[BLUE ALERT] ARP SPOOFING / POISONING DETECTED!")
     print(f"Target IP:     {target_ip}")
     print(f"Authentic MAC: {real_mac}")
     print(f"Attacker MAC:  {attacker_mac}")
     print("=" * 55)
+
+    # Log the alert to logs/security_alerts.log and logs/events.jsonl
+    log_security_event(
+        module="ARP Guard",
+        event_type="ARP Cache Poisoning",
+        source=attacker_mac,
+        target=target_ip,
+        action_taken="Static ARP Lock + Router Heal",
+        details=f"Authentic MAC: {real_mac}"
+    )
 
     # Automatically broadcast correction to neutralize the attack
     heal_network(target_ip, real_mac)

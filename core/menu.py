@@ -1,9 +1,16 @@
 from core.sniffer import NetworkSniffer
 from core.scanner import display_scan
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my_subnet
+from core.firewall import unblock_all_ips
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
-from defensive.arp_guard import check_packet, seed_baseline, poll_os_arp_table, stop_os_arp_polling
+from defensive.arp_guard import (
+    check_packet,
+    seed_baseline,
+    poll_os_arp_table,
+    stop_os_arp_polling,
+    cleanup_static_routes
+)
 from defensive.dhcp_guard import check_dhcp_packet, start_dhcp_reaper, stop_dhcp_reaper
 
 
@@ -79,8 +86,6 @@ def defensive_menu():
 
         choice = input("Select: ").strip()
 
-        # Inside defensive_menu():
-
         # Option 1: Start real-time ARP spoofing detector and auto-healer
         if choice == "1":
             # Pre-seed the real gateway MAC and start the OS cache monitor
@@ -93,9 +98,10 @@ def defensive_menu():
             sniffer.start()
             input("Press Enter to stop ARP Guard...\n")
 
-            # Cleanly stop both the packet sniffer and the OS cache monitor
+            # Cleanly stop the packet sniffer, OS cache monitor, and restore dynamic ARP
             sniffer.stop()
             stop_os_arp_polling()
+            cleanup_static_routes(gateway)
             print("[*] ARP Guard stopped.")
 
         # Option 2: Start DHCP starvation detector, lease releaser, and firewall blocker
@@ -111,8 +117,10 @@ def defensive_menu():
             )
             sniffer.start()
             input("Press Enter to stop DHCP Guard...\n")
+
             sniffer.stop()
             stop_dhcp_reaper()
+            unblock_all_ips()
             print("[*] DHCP Guard stopped.")
 
         # Exit submenu loop

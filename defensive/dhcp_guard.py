@@ -1,13 +1,13 @@
 import time
 import threading
-import subprocess
-import platform
 from collections import deque
 from scapy.all import conf, sendp
 from scapy.layers.dhcp import BOOTP, DHCP
 from scapy.layers.inet import IP, UDP
 from scapy.layers.l2 import Ether
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway
+from core.firewall import block_ip
+from core.logger import log_security_event
 
 # Attack tracking parameters
 RATE_LIMIT_WINDOW = 3.0     # Lookback period in seconds
@@ -18,7 +18,6 @@ POST_ATTACK_HOLD = 10.0     # Seconds to keep sweeping & releasing after attacke
 request_history = deque()
 recent_Cache = deque(maxlen=300)  # Stores recent (ip, mac) pairs even before threshold trips
 compromised_leases = {}           # Persistent ledger of stolen leases: {"IP": "MAC"}
-blocked_sources = set()
 
 last_alert_time = 0.0
 last_attack_time = 0.0
@@ -56,13 +55,12 @@ def extract_client_mac(packet) -> str:
 
 def build_release_packets(claimed_ip: str, client_mac: str, server_ip: str) -> list:
     """
-    Builds a DHCPRELEASE packet to free committed leases (ACKs) and
-    a DHCPDECLINE packet to cancel pending leases (Offers).
+    Builds a DHCPRELEASE packet to free committed leases (ACKs).
     """
     clean_mac = client_mac.replace(":", "").replace("-", "")
     raw_mac = bytes.fromhex(clean_mac).ljust(16, b"\x00")
 
-    # 1. Standard DHCPRELEASE (frees committed ACK leases)
+    # Standard DHCPRELEASE (frees committed ACK leases)
     rel = (
         Ether(src=client_mac, dst="ff:ff:ff:ff:ff:ff")
         / IP(src=claimed_ip, dst=server_ip)
@@ -90,7 +88,7 @@ def start_dhcp_reaper(server_ip: str = None):
 
     def _reaper_loop():
         global attack_active
-        # Open a persistent Layer 2 socket so sending takes <1ms instead of 80ms
+        # Open a persistent Layer 2 socket so sending takes less than 1ms instead of 80ms
         l2_sock = None
         try:
             l2_sock = conf.L2socket(iface=iface)
@@ -165,44 +163,6 @@ def stop_dhcp_reaper():
     is_guard_running = False
 
 
-def block_ip_firewall(source_ip: str):
-    """
-    Dynamically blocks a host at the OS-level firewall across Windows, macOS, and Linux.
-    """
-    if source_ip in blocked_sources or source_ip in ("0.0.0.0", "255.255.255.255"):
-        return
-
-    os_type = platform.system()
-    try:
-        if os_type == "Windows":
-            cmd = (
-                f'netsh advfirewall firewall add rule name="DHCP_Block_{source_ip}" '
-                f'dir=in action=block remoteip={source_ip}'
-            )
-            subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            blocked_sources.add(source_ip)
-            print(f"[FIREWALL] Windows Firewall rule injected: Blocked {source_ip}")
-
-        elif os_type == "Darwin":  # macOS
-            # Add offending IP to a macOS pfctl table
-            cmd = (
-                f'pfctl -t packetwarrior_blocks -T add {source_ip} 2>/dev/null || '
-                f'(echo "table <packetwarrior_blocks> persist\\nblock in quick from <packetwarrior_blocks>" '
-                f'| pfctl -a packetwarrior -f - 2>/dev/null && pfctl -t packetwarrior_blocks -T add {source_ip} 2>/dev/null)'
-            )
-            subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            blocked_sources.add(source_ip)
-            print(f"[FIREWALL] macOS pfctl rule injected: Blocked {source_ip}")
-
-        elif os_type == "Linux":
-            cmd = f"iptables -A INPUT -s {source_ip} -j DROP"
-            subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            blocked_sources.add(source_ip)
-            print(f"[FIREWALL] Linux iptables rule injected: Dropped {source_ip}")
-    except Exception as err:
-        print(f"[-] Could not inject firewall rule: {err}")
-
-
 def check_dhcp_packet(packet, server_ip="192.168.1.1"):
     """
     Non-blocking packet analyzer: Detects DHCP starvation floods and queues
@@ -253,6 +213,16 @@ def check_dhcp_packet(packet, server_ip="192.168.1.1"):
                 print("!" * 65)
                 last_alert_time = current_time
 
+                # Log the security event to logs/security_alerts.log and logs/events.jsonl
+                log_security_event(
+                    module="DHCP Guard",
+                    event_type="DHCP Starvation Flood",
+                    source=f"{len(unique_macs)} Spoofed MACs (latest: {client_mac})",
+                    target=server_ip,
+                    action_taken="L2 Lease Reaper + Firewall Block",
+                    details=f"{len(request_history)} requests in {RATE_LIMIT_WINDOW}s"
+                )
+
             # Sweep all recently seen leases (including the first 1-4 packets before the threshold tripped!)
             with lease_lock:
                 for ts, r_ip, r_mac in list(recent_Cache):
@@ -261,9 +231,9 @@ def check_dhcp_packet(packet, server_ip="192.168.1.1"):
                 if requested_ip and requested_ip not in ("0.0.0.0", my_ip):
                     compromised_leases[requested_ip] = client_mac
 
-            # Host firewall mitigation (if Layer 3 source is established)
+            # Host firewall mitigation via centralized core/firewall.py
             if packet.haslayer(IP) and packet[IP].src not in ("0.0.0.0", "255.255.255.255", server_ip, my_ip):
-                block_ip_firewall(packet[IP].src)
+                block_ip(packet[IP].src, reason="DHCP Starvation Flood")
 
     # 2 = Offer, 5 = ACK (Server-to-Client replies)
     # Catch every IP the router offers or assigns during or right after the flood!
