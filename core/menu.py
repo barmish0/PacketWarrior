@@ -4,10 +4,12 @@ from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my
 from core.firewall import unblock_all_ips
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
+from offensive.syn_flood import start_syn_flood
+from offensive.icmp_flood import start_icmp_flood
 from defensive.arp_guard import check_packet, seed_baseline, poll_os_arp_table, stop_os_arp_polling, cleanup_static_routes
 from defensive.dhcp_guard import check_dhcp_packet, start_dhcp_reaper, stop_dhcp_reaper
-from offensive.syn_flood import start_syn_flood
 from defensive.syn_guard import check_syn_packet
+from defensive.icmp_guard import check_icmp_packet
 
 
 def offensive_menu():
@@ -28,6 +30,7 @@ def offensive_menu():
         print("[2] ARP Spoofer (L2)")
         print("[3] DHCP Starvation (L2)")
         print("[4] SYN Flood (L4)")
+        print("[5] ICMP Ping Flood (L3)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
@@ -58,6 +61,7 @@ def offensive_menu():
             dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
             start_starve(target_ip=dhcp_server if dhcp_server else gateway)
 
+        # Option 4: Execute Layer 4 TCP SYN flood
         elif choice == "4":
             victim = input("Victim IP: ").strip()
             if not victim:
@@ -66,9 +70,14 @@ def offensive_menu():
 
             port = input("Enter target port [default 80]: ").strip()
             start_syn_flood(
-                target_ip=victim if victim else "192.168.1.194",
+                target_ip=victim,
                 target_port=int(port) if port.isdigit() else 80
             )
+
+        # Option 5: Execute Layer 3 ICMP ping flood
+        elif choice == "5":
+            victim = input(f"Enter target IP [default {gateway}]: ").strip()
+            start_icmp_flood(target_ip=victim if victim else gateway)
 
         # Exit submenu loop
         elif choice == "0":
@@ -92,6 +101,7 @@ def defensive_menu():
         print("[1] Run ARP Guard (L2)")
         print("[2] Run DHCP Guard (L2)")
         print("[3] SYN Guard (L4)")
+        print("[4] ICMP Guard (L3)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
@@ -133,6 +143,7 @@ def defensive_menu():
             unblock_all_ips()
             print("[*] DHCP Guard stopped.")
 
+        # Option 3: Start SYN flood detector and firewall blocker
         elif choice == "3":
             print("[*] SYN Guard active. Monitoring TCP SYN packets...")
             sniffer = NetworkSniffer(
@@ -144,6 +155,19 @@ def defensive_menu():
             sniffer.stop()
             unblock_all_ips()
             print("[*] SYN Guard stopped.")
+
+        # Option 4: Start ICMP flood detector and firewall blocker
+        elif choice == "4":
+            print("[*] ICMP Guard active. Monitoring ICMP Echo Requests...")
+            sniffer = NetworkSniffer(
+                packet_filter="icmp[icmptype] == icmp-echo",
+                action_on_packet=check_icmp_packet
+            )
+            sniffer.start()
+            input("Press Enter to stop ICMP Guard...\n")
+            sniffer.stop()
+            unblock_all_ips()
+            print("[*] ICMP Guard stopped.")
 
         # Exit submenu loop
         elif choice == "0":
