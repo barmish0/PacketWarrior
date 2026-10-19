@@ -4,14 +4,10 @@ from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my
 from core.firewall import unblock_all_ips
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
-from defensive.arp_guard import (
-    check_packet,
-    seed_baseline,
-    poll_os_arp_table,
-    stop_os_arp_polling,
-    cleanup_static_routes
-)
+from defensive.arp_guard import check_packet, seed_baseline, poll_os_arp_table, stop_os_arp_polling, cleanup_static_routes
 from defensive.dhcp_guard import check_dhcp_packet, start_dhcp_reaper, stop_dhcp_reaper
+from offensive.syn_flood import start_syn_flood
+from defensive.syn_guard import check_syn_packet
 
 
 def offensive_menu():
@@ -31,6 +27,7 @@ def offensive_menu():
         print("[1] Scan Network")
         print("[2] ARP Spoofer (L2)")
         print("[3] DHCP Starvation (L2)")
+        print("[4] SYN Flood (L4)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
@@ -61,6 +58,18 @@ def offensive_menu():
             dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
             start_starve(target_ip=dhcp_server if dhcp_server else gateway)
 
+        elif choice == "4":
+            victim = input("Victim IP: ").strip()
+            if not victim:
+                print("[-] Victim IP is required.")
+                continue
+
+            port = input("Enter target port [default 80]: ").strip()
+            start_syn_flood(
+                target_ip=victim if victim else "192.168.1.194",
+                target_port=int(port) if port.isdigit() else 80
+            )
+
         # Exit submenu loop
         elif choice == "0":
             break
@@ -82,6 +91,7 @@ def defensive_menu():
         print("=" * 50)
         print("[1] Run ARP Guard (L2)")
         print("[2] Run DHCP Guard (L2)")
+        print("[3] SYN Guard (L4)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
@@ -122,6 +132,18 @@ def defensive_menu():
             stop_dhcp_reaper()
             unblock_all_ips()
             print("[*] DHCP Guard stopped.")
+
+        elif choice == "3":
+            print("[*] SYN Guard active. Monitoring TCP SYN packets...")
+            sniffer = NetworkSniffer(
+                packet_filter="tcp[13] & 2 != 0",  # BPF filter matching TCP SYN flag
+                action_on_packet=check_syn_packet
+            )
+            sniffer.start()
+            input("Press Enter to stop SYN Guard...\n")
+            sniffer.stop()
+            unblock_all_ips()
+            print("[*] SYN Guard stopped.")
 
         # Exit submenu loop
         elif choice == "0":

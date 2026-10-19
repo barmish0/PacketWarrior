@@ -4,13 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="made improvements.">
-      <change afterPath="$PROJECT_DIR$/core/firewall.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/logger.py" afterDir="false" />
+    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="made improvements. added firewall.py and logger.py">
+      <change afterPath="$PROJECT_DIR$/defensive/syn_guard.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/offensive/syn_flood.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/defensive/arp_guard.py" beforeDir="false" afterPath="$PROJECT_DIR$/defensive/arp_guard.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/defensive/dhcp_guard.py" beforeDir="false" afterPath="$PROJECT_DIR$/defensive/dhcp_guard.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -242,7 +240,15 @@
       <option name="project" value="LOCAL‎" />
       <updated>1792242144482</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL‎-00021" summary="made improvements. added firewall.py and logger.py">
+      <option name="closed" value="true" />
+      <created>1792243675952</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL‎-00021" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1792243675952</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -257,6 +263,7 @@
     <MESSAGE value="made improvments" />
     <MESSAGE value="made improvements" />
     <MESSAGE value="made improvements." />
-    <option name="LAST_COMMIT_MESSAGE" value="made improvements." />
+    <MESSAGE value="made improvements. added firewall.py and logger.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="made improvements. added firewall.py and logger.py" />
   </component>
 </project>
