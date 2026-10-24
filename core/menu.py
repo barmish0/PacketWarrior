@@ -2,26 +2,38 @@ from core.sniffer import NetworkSniffer
 from core.scanner import display_scan
 from core.network_info import get_my_ip, get_my_mac, get_default_gateway, get_my_subnet
 from core.firewall import unblock_all_ips
+
 from offensive.arp_spoofer import continuous_arp_dos
 from offensive.dhcp_starvation import start_starve
 from offensive.syn_flood import start_syn_flood
 from offensive.icmp_flood import start_icmp_flood
-from defensive.arp_guard import check_packet, seed_baseline, poll_os_arp_table, stop_os_arp_polling, cleanup_static_routes
-from defensive.dhcp_guard import check_dhcp_packet, start_dhcp_reaper, stop_dhcp_reaper
+from offensive.dns_spoofer import start_mitm_and_dns_spoof
+
+from defensive.arp_guard import (
+    check_packet,
+    seed_baseline,
+    poll_os_arp_table,
+    stop_os_arp_polling,
+    cleanup_static_routes
+)
+from defensive.dhcp_guard import (
+    check_dhcp_packet,
+    start_dhcp_reaper,
+    stop_dhcp_reaper
+)
 from defensive.syn_guard import check_syn_packet
 from defensive.icmp_guard import check_icmp_packet
+from defensive.dns_guard import check_dns_packet
 
 
 def offensive_menu():
     """Handles the Red Team (Offensive) interactive submenu."""
-    # Automatically fetch local networking configuration details
     my_ip = get_my_ip()
     my_mac = get_my_mac()
     gateway = get_default_gateway()
     subnet = get_my_subnet()
 
     while True:
-        # Display current host status and available attack simulation options
         print("\n--- Offensive Mode (Red Team) ---")
         print(f"[*] Host IP: {my_ip} | MAC: {my_mac}")
         print(f"[*] Gateway: {gateway} | Subnet: {subnet}")
@@ -31,16 +43,17 @@ def offensive_menu():
         print("[3] DHCP Starvation (L2)")
         print("[4] SYN Flood (L4)")
         print("[5] ICMP Ping Flood (L3)")
+        print("[6] DNS Spoofer + MITM (L7)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
 
-        # Option 1: Trigger network reconnaissance scan
+        # Option 1: Network reconnaissance scan
         if choice == "1":
             user_subnet = input(f"Enter subnet to scan [default {subnet}]: ").strip()
             display_scan(user_subnet if user_subnet else subnet)
 
-        # Option 2: Execute Layer 2 ARP poisoning/DoS attack
+        # Option 2: ARP poisoning / DoS
         elif choice == "2":
             victim = input("Victim IP: ").strip()
             if not victim:
@@ -56,12 +69,12 @@ def offensive_menu():
                 attacker_mac=user_mac if user_mac else my_mac
             )
 
-        # Option 3: Execute Layer 2 DHCP starvation attack
+        # Option 3: DHCP starvation
         elif choice == "3":
             dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
             start_starve(target_ip=dhcp_server if dhcp_server else gateway)
 
-        # Option 4: Execute Layer 4 TCP SYN flood
+        # Option 4: TCP SYN flood
         elif choice == "4":
             victim = input("Victim IP: ").strip()
             if not victim:
@@ -74,26 +87,38 @@ def offensive_menu():
                 target_port=int(port) if port.isdigit() else 80
             )
 
-        # Option 5: Execute Layer 3 ICMP ping flood
+        # Option 5: ICMP ping flood
         elif choice == "5":
             victim = input(f"Enter target IP [default {gateway}]: ").strip()
             start_icmp_flood(target_ip=victim if victim else gateway)
 
-        # Exit submenu loop
+        # Option 6: DNS spoofer + MITM
+        elif choice == "6":
+            victim = input("Victim IP (required for MITM): ").strip()
+            if not victim:
+                print("[-] Victim IP is required to intercept DNS queries.")
+                continue
+            domain = input("Enter target domain to spoof [default example.com]: ").strip()
+            fake_ip = input(f"Enter spoofed redirect IP [default {my_ip}]: ").strip()
+            start_mitm_and_dns_spoof(
+                victim_ip=victim,
+                gateway_ip=gateway,
+                target_domain=domain if domain else "example.com",
+                spoof_ip=fake_ip if fake_ip else my_ip
+            )
+
         elif choice == "0":
             break
 
 
 def defensive_menu():
     """Handles the Blue Team (Defensive) interactive submenu."""
-    # Automatically fetch local networking configuration details
     my_ip = get_my_ip()
     my_mac = get_my_mac()
     gateway = get_default_gateway()
     subnet = get_my_subnet()
 
     while True:
-        # Display current host status and available defensive monitoring options
         print("\n--- Defensive Mode (Blue Team) ---")
         print(f"[*] Host IP: {my_ip} | MAC: {my_mac}")
         print(f"[*] Gateway: {gateway} | Subnet: {subnet}")
@@ -102,13 +127,13 @@ def defensive_menu():
         print("[2] Run DHCP Guard (L2)")
         print("[3] SYN Guard (L4)")
         print("[4] ICMP Guard (L3)")
+        print("[5] DNS Guard (L7)")
         print("[0] Back to Main Menu")
 
         choice = input("Select: ").strip()
 
-        # Option 1: Start real-time ARP spoofing detector and auto-healer
+        # Option 1: ARP Guard
         if choice == "1":
-            # Pre-seed the real gateway MAC and start the OS cache monitor
             print("[*] Initializing ARP baseline...")
             seed_baseline()
             poll_os_arp_table()
@@ -118,13 +143,12 @@ def defensive_menu():
             sniffer.start()
             input("Press Enter to stop ARP Guard...\n")
 
-            # Cleanly stop the packet sniffer, OS cache monitor, and restore dynamic ARP
             sniffer.stop()
             stop_os_arp_polling()
             cleanup_static_routes(gateway)
             print("[*] ARP Guard stopped.")
 
-        # Option 2: Start DHCP starvation detector, lease releaser, and firewall blocker
+        # Option 2: DHCP Guard
         elif choice == "2":
             dhcp_server = input(f"Enter DHCP Server IP [default {gateway}]: ").strip()
             target_gw = dhcp_server if dhcp_server else gateway
@@ -143,11 +167,11 @@ def defensive_menu():
             unblock_all_ips()
             print("[*] DHCP Guard stopped.")
 
-        # Option 3: Start SYN flood detector and firewall blocker
+        # Option 3: SYN Guard
         elif choice == "3":
             print("[*] SYN Guard active. Monitoring TCP SYN packets...")
             sniffer = NetworkSniffer(
-                packet_filter="tcp[13] & 2 != 0",  # BPF filter matching TCP SYN flag
+                packet_filter="tcp[13] & 2 != 0",
                 action_on_packet=check_syn_packet
             )
             sniffer.start()
@@ -156,7 +180,7 @@ def defensive_menu():
             unblock_all_ips()
             print("[*] SYN Guard stopped.")
 
-        # Option 4: Start ICMP flood detector and firewall blocker
+        # Option 4: ICMP Guard
         elif choice == "4":
             print("[*] ICMP Guard active. Monitoring ICMP Echo Requests...")
             sniffer = NetworkSniffer(
@@ -169,6 +193,17 @@ def defensive_menu():
             unblock_all_ips()
             print("[*] ICMP Guard stopped.")
 
-        # Exit submenu loop
+        # Option 5: DNS Guard
+        elif choice == "5":
+            print("[*] DNS Guard active. Monitoring DNS responses for spoofing...")
+            sniffer = NetworkSniffer(
+                packet_filter="udp dst port 53 or udp src port 53",
+                action_on_packet=check_dns_packet
+            )
+            sniffer.start()
+            input("Press Enter to stop DNS Guard...\n")
+            sniffer.stop()
+            print("[*] DNS Guard stopped.")
+
         elif choice == "0":
             break

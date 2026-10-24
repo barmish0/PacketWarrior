@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="made improvements. added firewall.py and logger.py">
-      <change afterPath="$PROJECT_DIR$/defensive/syn_guard.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/offensive/syn_flood.py" afterDir="false" />
+    <list default="true" id="4139bff0-f1e0-4ec0-ae6d-905e25c71e72" name="Changes" comment="added icmp_flood.py.py, icmp_guard.py">
+      <change afterPath="$PROJECT_DIR$/defensive/dns_guard.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/offensive/dns_spoofer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/menu.py" afterDir="false" />
     </list>
@@ -49,22 +49,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.menu.executor&quot;: &quot;Run&quot;,
-    &quot;Python.network_info.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.main.executor": "Run",
+    "Python.menu.executor": "Run",
+    "Python.network_info.executor": "Run",
+    "Python.scanner.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
+    "to.speed.mode.migration.done": "true"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -248,7 +249,23 @@
       <option name="project" value="LOCAL‎" />
       <updated>1792243675952</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL‎-00022" summary="added syn_flood.py, syn_guard.py">
+      <option name="closed" value="true" />
+      <created>1792427708133</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL‎-00022" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1792427708133</updated>
+    </task>
+    <task id="LOCAL‎-00023" summary="added icmp_flood.py.py, icmp_guard.py">
+      <option name="closed" value="true" />
+      <created>1792427971098</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL‎-00023" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1792427971098</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -264,6 +281,8 @@
     <MESSAGE value="made improvements" />
     <MESSAGE value="made improvements." />
     <MESSAGE value="made improvements. added firewall.py and logger.py" />
-    <option name="LAST_COMMIT_MESSAGE" value="made improvements. added firewall.py and logger.py" />
+    <MESSAGE value="added syn_flood.py, syn_guard.py" />
+    <MESSAGE value="added icmp_flood.py.py, icmp_guard.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="added icmp_flood.py.py, icmp_guard.py" />
   </component>
 </project>
